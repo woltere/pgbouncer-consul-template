@@ -1,0 +1,22 @@
+[pgbouncer]
+pool_mode = transaction
+listen_port = 6432
+listen_addr = 0.0.0.0
+auth_type = md5
+# auth_query = SELECT usename, passwd FROM pg_shadow WHERE usename=$1
+auth_file = /etc/pgbouncer/users.txt
+# logfile = /dev/stdout
+pidfile = /var/run/postgresql/pgbouncer.pid
+admin_users = admin
+stats_users = stat_collector
+application_name_add_host = 1
+verbose = 1
+
+[databases]
+{{range $key, $pairs := tree "service" | byKey}}{{with $leader := key (printf "service/%s/leader" $key)}} {{with $data := key (printf "service/%s/members/%s" $key $leader) | parseJSON}} {{with $host_port := (index (index ($data.conn_url | split "@") 1 | split "/") 0) | split ":"}}
+{{$key}}-postgres = host={{index $host_port 0}} port={{index $host_port 1}} dbname=postgres
+{{$key}} = host={{index $host_port 0}} port={{index $host_port 1}} dbname={{$key}}
+      {{end}} 
+    {{end}}
+  {{end}}
+{{end}}
