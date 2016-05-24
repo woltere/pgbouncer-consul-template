@@ -11,12 +11,17 @@ admin_users = admin
 stats_users = stat_collector
 application_name_add_host = 1
 verbose = 1
+autodb_idle_timeout = 3600
 
 [databases]
-{{range $key, $pairs := tree "service" | byKey}}{{with $leader := key (printf "service/%s/leader" $key)}} {{with $data := key (printf "service/%s/members/%s" $key $leader) | parseJSON}} {{with $host_port := (index (index ($data.conn_url | split "@") 1 | split "/") 0) | split ":"}}
-{{$key}}-postgres = host={{index $host_port 0}} port={{index $host_port 1}} dbname=postgres
-{{$key}} = host={{index $host_port 0}} port={{index $host_port 1}} dbname={{$key}}
-      {{end}} 
-    {{end}}
-  {{end}}
+{{with $database := env "DATABASE" }}
+{{	with $leader := key_or_default (printf "service/%s/leader" $database) "NONE"}}
+{{		if ne $leader "NONE"}}
+{{			with $data := key (printf "service/%s/members/%s" $database $leader) | parseJSON}}
+{{				with $host_port := (index (index ($data.conn_url | split "@") 1 | split "/") 0) | split ":"}}
+* = host={{index $host_port 0}} port={{index $host_port 1}}
+{{				end}}
+{{			end}} 
+{{		end}}
+{{	end}}
 {{end}}
